@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Trà Sữa Hoa Sen – Revenue Dashboard v3</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0f1117;--card:#1a1d2e;--card2:#1e2235;--a1:#4361ee;--a2:#f72585;--a3:#4cc9f0;--green:#06d6a0;--yellow:#ffd60a;--orange:#fb8500;--purple:#9b5de5;--text:#e2e8f0;--sub:#94a3b8;--border:#2a2f4a;--hover:#252840;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;}
+
+/* HEADER */
+.hdr{background:linear-gradient(135deg,#1a1d2e,#12152a);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;justify-content:space-between;align-items:center;}
+.hdr h1{font-size:18px;font-weight:700;}.hdr h1 span{color:var(--a3);}
+.hdr-right{text-align:right;font-size:11px;color:var(--sub);line-height:1.7;}
+.hdr-right strong{color:var(--a3);}
+
+/* TABS */
+.tabs{background:var(--card);border-bottom:1px solid var(--border);padding:0 28px;display:flex;gap:0;}
+.tab{padding:12px 22px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--sub);transition:.15s;user-select:none;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--a3);border-bottom-color:var(--a3);}
+
+/* FILTER BAR */
+.filter-bar{background:#13162b;border-bottom:1px solid var(--border);padding:10px 28px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.filter-group{display:flex;align-items:center;gap:6px;}
+.filter-label{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--sub);white-space:nowrap;}
+.filter-sep{width:1px;height:22px;background:var(--border);}
+
+/* MULTI-SELECT */
+.ms-wrap{position:relative;display:inline-block;}
+.ms-btn{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;min-width:130px;justify-content:space-between;transition:.15s;user-select:none;}
+.ms-btn:hover,.ms-btn.open{border-color:var(--a1);background:var(--hover);}
+.ms-arrow{opacity:.5;font-size:10px;transition:.15s;}
+.ms-btn.open .ms-arrow{transform:rotate(180deg);}
+.ms-pill{background:rgba(67,97,238,.25);color:var(--a3);border-radius:20px;padding:1px 7px;font-size:10px;font-weight:600;}
+.ms-dropdown{position:absolute;top:calc(100% + 4px);left:0;min-width:200px;background:var(--card);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:200;display:none;overflow:hidden;}
+.ms-dropdown.open{display:block;}
+.ms-search{width:100%;background:var(--card2);border:none;border-bottom:1px solid var(--border);padding:8px 12px;color:var(--text);font-size:12px;outline:none;}
+.ms-list{max-height:220px;overflow-y:auto;padding:4px 0;}
+.ms-item{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;font-size:12px;transition:.1s;}
+.ms-item:hover{background:var(--hover);}
+.ms-item.checked{color:var(--a3);}
+.ms-cb{width:14px;height:14px;border:1.5px solid var(--border);border-radius:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.1s;}
+.ms-item.checked .ms-cb{background:var(--a1);border-color:var(--a1);}
+.ms-cb::after{content:'✓';font-size:9px;color:#fff;display:none;}
+.ms-item.checked .ms-cb::after{display:block;}
+.ms-footer{display:flex;gap:8px;padding:8px 12px;border-top:1px solid var(--border);}
+.ms-act{flex:1;padding:5px;font-size:11px;border-radius:6px;cursor:pointer;text-align:center;font-weight:600;}
+.ms-all{background:rgba(67,97,238,.15);color:var(--a3);border:1px solid rgba(67,97,238,.3);}
+.ms-none{background:rgba(247,37,133,.1);color:var(--a2);border:1px solid rgba(247,37,133,.2);}
+
+/* DATE selects */
+select{background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;padding:6px 10px;outline:none;cursor:pointer;}
+select:hover{border-color:var(--a1);}
+
+/* Reset btn */
+.btn-reset{background:rgba(247,37,133,.12);border:1px solid rgba(247,37,133,.25);color:var(--a2);border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-weight:600;transition:.15s;}
+.btn-reset:hover{background:rgba(247,37,133,.22);}
+.filter-status{font-size:11px;color:var(--sub);margin-left:auto;}
+.filter-status strong{color:var(--a3);}
+
+/* CONTAINER */
+.tab-content{display:none;max-width:1440px;margin:0 auto;padding:20px 24px;}
+.tab-content.active{display:block;}
+
+/* KPI CARDS */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.kpi{background:var(--card);border-radius:12px;padding:18px 20px;border:1px solid var(--border);position:relative;overflow:hidden;}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0;}
+.kpi.c1::before{background:linear-gradient(90deg,var(--a1),var(--a3));}
+.kpi.c2::before{background:linear-gradient(90deg,var(--a2),var(--orange));}
+.kpi.c3::before{background:linear-gradient(90deg,var(--green),#06d6a0aa);}
+.kpi.c4::before{background:linear-gradient(90deg,var(--yellow),var(--orange));}
+.kpi-ico{position:absolute;right:14px;top:14px;font-size:26px;opacity:.1;}
+.kpi-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--sub);margin-bottom:6px;}
+.kpi-val{font-size:24px;font-weight:800;line-height:1;margin-bottom:2px;}
+.kpi.c1 .kpi-val{color:var(--a3);}.kpi.c2 .kpi-val{color:var(--a2);}
+.kpi.c3 .kpi-val{color:var(--green);}.kpi.c4 .kpi-val{color:var(--yellow);}
+.kpi-sub{font-size:11px;color:var(--sub);}
+
+/* CHART CARDS */
+.row2{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;margin-bottom:18px;}
+.row2b{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;}
+.cc{background:var(--card);border-radius:12px;padding:18px;border:1px solid var(--border);}
+.cc.clickable{cursor:pointer;transition:.15s;}
+.cc.clickable:hover{border-color:rgba(67,97,238,.45);}
+.cc.sel{border-color:var(--a1)!important;box-shadow:0 0 0 2px rgba(67,97,238,.18);}
+.ct{font-size:12px;font-weight:600;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;}
+.ct-hint{font-size:10px;color:var(--sub);font-weight:400;}
+.leg-row{display:flex;gap:14px;}
+.leg{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--sub);}
+.leg-dot{width:8px;height:8px;border-radius:50%;}
+
+/* TABLE */
+.tcard{background:var(--card);border-radius:12px;padding:18px;border:1px solid var(--border);margin-bottom:20px;}
+.tbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap;}
+.srch{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text);font-size:12px;width:200px;outline:none;}
+.srch:focus{border-color:var(--a1);}
+.tinfo{font-size:11px;color:var(--sub);}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{padding:8px 10px;text-align:left;color:var(--sub);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;}
+th:hover{color:var(--text);}
+th.asc::after{content:" ↑";color:var(--a3);}th.desc::after{content:" ↓";color:var(--a3);}
+td{padding:8px 10px;border-bottom:1px solid rgba(42,47,74,.4);}
+tr:hover td{background:rgba(67,97,238,.05);}
+tr.hl td{background:rgba(67,97,238,.1)!important;}
+.rnk{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:9px;font-weight:700;}
+.r1{background:linear-gradient(135deg,#ffd700,#ffaa00);color:#000;}
+.r2{background:linear-gradient(135deg,#c0c0c0,#909090);color:#000;}
+.r3{background:linear-gradient(135deg,#cd7f32,#a0522d);color:#fff;}
+.rn{background:var(--border);color:var(--sub);}
+.ctag{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;}
+.t-hn{background:rgba(67,97,238,.2);color:#818cf8;}
+.t-hp{background:rgba(76,201,240,.2);color:#67e8f9;}
+.t-tb{background:rgba(251,191,36,.2);color:#fcd34d;}
+.t-nd{background:rgba(6,214,160,.15);color:#5eead4;}
+.t-o{background:rgba(148,163,184,.15);color:var(--sub);}
+.gtag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;background:rgba(155,93,229,.2);color:#c4b5fd;}
+.bm{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--a1),var(--a3));margin-top:2px;}
+.num{font-variant-numeric:tabular-nums;}
+.g{color:var(--green);}.s{color:var(--sub);}
+svg.spark{vertical-align:middle;}
+
+/* DRILL PANEL */
+.drill-panel{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:300;align-items:center;justify-content:center;}
+.drill-panel.open{display:flex;}
+.drill-box{background:var(--card);border-radius:16px;padding:26px;width:92%;max-width:680px;border:1px solid var(--border);max-height:82vh;overflow-y:auto;}
+.drill-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+.drill-hdr h3{font-size:15px;}
+.drill-x{cursor:pointer;color:var(--sub);font-size:22px;line-height:1;}
+.drill-x:hover{color:var(--text);}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;}
+.stat-box{background:var(--card2);border-radius:8px;padding:12px;border:1px solid var(--border);}
+.stat-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--sub);margin-bottom:5px;}
+.stat-val{font-size:18px;font-weight:800;}
+.empty{text-align:center;padding:36px;color:var(--sub);font-style:italic;}
+.footer{text-align:center;padding:12px;color:var(--sub);font-size:10px;border-top:1px solid var(--border);}
+
+/* Product specific */
+.prod-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;}
+.prod-full{margin-bottom:18px;}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <h1>📊 <span>Trà Sữa Hoa Sen</span> – Revenue Dashboard</h1>
+    <div style="font-size:10px;color:var(--sub);margin-top:3px;">Tháng 3/2026 · 41 cửa hàng · Miền Bắc</div>
+  </div>
+  <div class="hdr-right"><strong id="hdrStatus">Toàn bộ dữ liệu</strong><br>Cập nhật mới nhất</div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('overview')">📈 Tổng Quan</div>
+  <div class="tab" onclick="switchTab('products')">🧋 Sản Phẩm</div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <div class="filter-group">
+    <span class="filter-label">Vùng</span>
+    <div class="ms-wrap" id="msRegion"></div>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Thành Phố</span>
+    <div class="ms-wrap" id="msCity"></div>
+  </div>
+  <div class="filter-sep"></div>
+  <div class="filter-group">
+    <span class="filter-label">Từ</span>
+    <select id="fDateFrom" onchange="applyFilters()"></select>
+    <span class="filter-label">đến</span>
+    <select id="fDateTo" onchange="applyFilters()"></select>
+  </div>
+  <div class="filter-sep"></div>
+  <div class="filter-group">
+    <span class="filter-label">Ngày</span>
+    <div class="ms-wrap" id="msDayType"></div>
+  </div>
+  <div class="filter-sep"></div>
+  <div class="filter-group">
+    <span class="filter-label">Nhóm Món</span>
+    <div class="ms-wrap" id="msGroup"></div>
+  </div>
+  <button class="btn-reset" onclick="resetFilters()">✕ Reset</button>
+  <span class="filter-status" id="fStatus"><strong>41</strong> stores · <strong>31</strong> ngày</span>
+</div>
+
+<!-- ===== TAB: OVERVIEW ===== -->
+<div class="tab-content active" id="tab-overview">
+
+  <div class="kpi-grid">
+    <div class="kpi c1"><div class="kpi-ico">💰</div>
+      <div class="kpi-lbl">Tổng Doanh Thu Net</div>
+      <div class="kpi-val" id="kRev">—</div><div class="kpi-sub" id="kRevSub">—</div></div>
+    <div class="kpi c2"><div class="kpi-ico">🧾</div>
+      <div class="kpi-lbl">Tổng SL Bán</div>
+      <div class="kpi-val" id="kSold">—</div><div class="kpi-sub" id="kSoldSub">—</div></div>
+    <div class="kpi c3"><div class="kpi-ico">📅</div>
+      <div class="kpi-lbl">Doanh Thu TB / Ngày</div>
+      <div class="kpi-val" id="kAvgD">—</div><div class="kpi-sub" id="kAvgDSub">—</div></div>
+    <div class="kpi c4"><div class="kpi-ico">🎯</div>
+      <div class="kpi-lbl">Avg TA (giá TB/món)</div>
+      <div class="kpi-val" id="kTA">—</div><div class="kpi-sub" id="kTASub">—</div></div>
+  </div>
+
+  <div class="row2">
+    <div class="cc clickable" onclick="void(0)">
+      <div class="ct">🏆 Top 10 Cửa Hàng <span class="ct-hint">Click để drill-down</span></div>
+      <canvas id="cTop10" height="230"></canvas>
+    </div>
+    <div class="cc clickable">
+      <div class="ct">🗺️ Theo Vùng <span class="ct-hint">Click để lọc</span></div>
+      <canvas id="cRegion" height="230"></canvas>
+    </div>
+  </div>
+
+  <div class="cc prod-full">
+    <div class="ct">
+      <span>📈 Doanh Thu Hàng Ngày</span>
+      <div class="leg-row">
+        <div class="leg"><div class="leg-dot" style="background:#4361ee"></div>Ngày thường</div>
+        <div class="leg"><div class="leg-dot" style="background:#f72585"></div>Cuối tuần</div>
+        <span id="legAvg" style="font-size:10px;color:var(--sub)"></span>
+      </div>
+    </div>
+    <canvas id="cDaily" height="100"></canvas>
+  </div>
+
+  <div class="row2b">
+    <div class="cc clickable">
+      <div class="ct">🏙️ Theo Thành Phố <span class="ct-hint">Click để lọc</span></div>
+      <canvas id="cCity" height="190"></canvas>
+    </div>
+    <div class="cc">
+      <div class="ct">📅 Ngày Thường vs Cuối Tuần</div>
+      <canvas id="cWknd" height="190"></canvas>
+    </div>
+  </div>
+
+  <div class="tcard">
+    <div class="tbar">
+      <div class="ct" style="margin-bottom:0">📋 KPI Cửa Hàng</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input class="srch" id="srchStore" placeholder="🔍 Tìm store, thành phố..." oninput="renderStoreTable()">
+        <span class="tinfo" id="storeInfo">—</span>
+      </div>
+    </div>
+    <table><thead><tr>
+      <th onclick="srtS(0)">#</th>
+      <th onclick="srtS(1)">Cửa Hàng</th>
+      <th onclick="srtS(2)">Thành Phố</th>
+      <th onclick="srtS(3)" class="desc">Doanh Thu</th>
+      <th onclick="srtS(4)">SL Bán</th>
+      <th onclick="srtS(5)">TB/Ngày</th>
+      <th onclick="srtS(6)">%</th>
+      <th>Trend</th>
+    </tr></thead>
+    <tbody id="tbStore"></tbody></table>
+  </div>
+</div>
+
+<!-- ===== TAB: PRODUCTS ===== -->
+<div class="tab-content" id="tab-products">
+
+  <div class="kpi-grid">
+    <div class="kpi c1"><div class="kpi-ico">🧋</div>
+      <div class="kpi-lbl">Tổng SP trong kỳ</div>
+      <div class="kpi-val" id="pKSP">—</div><div class="kpi-sub" id="pKSPsub">—</div></div>
+    <div class="kpi c2"><div class="kpi-ico">🏆</div>
+      <div class="kpi-lbl">SP Bán Chạy Nhất</div>
+      <div class="kpi-val" style="font-size:14px;line-height:1.3" id="pKTop">—</div><div class="kpi-sub" id="pKTopSub">—</div></div>
+    <div class="kpi c3"><div class="kpi-ico">📦</div>
+      <div class="kpi-lbl">Nhóm Món Dẫn Đầu</div>
+      <div class="kpi-val" style="font-size:14px;line-height:1.3" id="pKGrp">—</div><div class="kpi-sub" id="pKGrpSub">—</div></div>
+    <div class="kpi c4"><div class="kpi-ico">💵</div>
+      <div class="kpi-lbl">Giá Cao Nhất</div>
+      <div class="kpi-val" id="pKPrice">—</div><div class="kpi-sub" id="pKPriceSub">—</div></div>
+  </div>
+
+  <div class="prod-row">
+    <div class="cc">
+      <div class="ct">🏆 Top 10 Bán Chạy (SL) <span class="ct-hint">Số lượng bán</span></div>
+      <canvas id="cProdSold" height="240"></canvas>
+    </div>
+    <div class="cc">
+      <div class="ct">💰 Top 10 Doanh Thu <span class="ct-hint">Doanh thu net</span></div>
+      <canvas id="cProdRev" height="240"></canvas>
+    </div>
+  </div>
+
+  <div class="prod-row">
+    <div class="cc">
+      <div class="ct">📦 Doanh Thu theo Nhóm Món <span class="ct-hint">Click để lọc</span></div>
+      <canvas id="cGrpRev" height="220"></canvas>
+    </div>
+    <div class="cc">
+      <div class="ct">📊 Nhóm Món – SL vs Doanh Thu</div>
+      <canvas id="cGrpBubble" height="220"></canvas>
+    </div>
+  </div>
+
+  <div class="cc prod-full">
+    <div class="ct">📈 Xu Hướng Daily – Top 5 Sản Phẩm <span class="ct-hint">Trend theo ngày</span></div>
+    <canvas id="cProdTrend" height="110"></canvas>
+  </div>
+
+  <div class="tcard">
+    <div class="tbar">
+      <div class="ct" style="margin-bottom:0">🧋 Danh Sách Sản Phẩm</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input class="srch" id="srchProd" placeholder="🔍 Tìm sản phẩm, nhóm..." oninput="renderProdTable()">
+        <span class="tinfo" id="prodInfo">—</span>
+      </div>
+    </div>
+    <table><thead><tr>
+      <th onclick="srtP(0)">#</th>
+      <th onclick="srtP(1)">Tên Sản Phẩm</th>
+      <th onclick="srtP(2)">Nhóm</th>
+      <th onclick="srtP(3)" class="desc">Doanh Thu</th>
+      <th onclick="srtP(4)">SL Bán</th>
+      <th onclick="srtP(5)">Giá TB</th>
+      <th onclick="srtP(6)">Stores</th>
+      <th>%Rev</th>
+    </tr></thead>
+    <tbody id="tbProd"></tbody></table>
+  </div>
+</div>
+
+<div class="footer">Trà Sữa Hoa Sen · Revenue Dashboard · T3/2026</div>
+
+<!-- DRILL -->
+<div class="drill-panel" id="drillPanel" onclick="closeDrill(event)">
+  <div class="drill-box">
+    <div class="drill-hdr"><h3 id="drillTitle">Chi tiết</h3><span class="drill-x" onclick="closeDrill()">✕</span></div>
+    <div id="drillContent"></div>
+  </div>
+</div>
+
+<script>
+// ========== RAW DATA ==========
+// ========== SUPABASE CONFIG ==========
+const SUPABASE_URL = 'https://sshrhwaqfogaljlfgufd.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzaHJod2FxZm9nYWxqbGZndWZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0Mzc2MzksImV4cCI6MjA5NTAxMzYzOX0.tC9q-XmTsJKjKHG0YoIyTAvt36UmYltypOcnnd2bJV0';
+
+async function fetchAll(table, select='*') {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=${select}&limit=2000`, {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+  });
+  if (!res.ok) throw new Error(`Failed to fetch ${table}: ${res.status}`);
+  return res.json();
+}
+
+let D = null;
+
+async function loadData() {
+  document.getElementById('loadingScreen').style.display = 'flex';
+  try {
+    const [stores, products, metaRows] = await Promise.all([
+      fetchAll('stores'),
+      fetchAll('products'),
+      fetchAll('metadata'),
+    ]);
+    const meta = Object.fromEntries(metaRows.map(m => [m.key, JSON.parse(m.value)]));
+    D = {
+      stores: stores.map(s => ({
+        name: s.name, fullName: s.full_name,
+        city: s.city, region: s.region,
+        rev: s.rev, sold: s.sold,
+        activeDays: s.active_days, avgDailyRev: s.avg_daily_rev,
+        daily: s.daily
+      })),
+      products: products.map(p => ({
+        name: p.name, group: p.group_name,
+        sold: p.sold, rev: p.rev,
+        avgPrice: p.avg_price, stores: p.stores_count,
+        daily: p.daily
+      })),
+      dates: meta.dates,
+      weekend: meta.weekend,
+    };
+    document.getElementById('loadingScreen').style.display = 'none';
+    initApp();
+  } catch(e) {
+    document.getElementById('loadingScreen').innerHTML =
+      `<div style="color:#f72585;text-align:center"><div style="font-size:48px">⚠️</div><div style="margin-top:12px">Lỗi tải dữ liệu</div><div style="font-size:12px;margin-top:8px;color:#94a3b8">${e.message}</div><button onclick="loadData()" style="margin-top:16px;padding:8px 20px;background:#4361ee;color:#fff;border:none;border-radius:8px;cursor:pointer">Thử lại</button></div>`;
+  }
+}
+
+// Data loaded from Supabase via loadData()
+
+// ========== STATE ==========
+let S;
+function initApp() {
+  S = {
+    regions: new Set(), cities: new Set(), dayTypes: new Set(['weekday','weekend']),
+    groups: new Set(), dateFrom: DATES[0], dateTo: DATES[DATES.length-1],
+    srtS: 3, srtSAsc: false, srtP: 3, srtPAsc: false,
+    hlStore: null, hlProd: null, tab: 'overview'
+  };
+  const DATES = D.dates;
+  const WE = new Set(D.weekend);
+  const ALL_STORES = D.stores;
+  const ALL_PRODS = D.products;
+
+// ========== MULTI-SELECT COMPONENT ==========
+function buildMS(wrapperId, options, allLabel, onChange, multiLabel) {
+  const wrap = document.getElementById(wrapperId);
+  const selected = new Set(options.map(o=>o.val));
+  
+  wrap.innerHTML = `
+    <div class="ms-btn" id="${wrapperId}-btn" onclick="toggleMS('${wrapperId}')">
+      <span id="${wrapperId}-lbl">${allLabel}</span>
+      <span class="ms-arrow">▾</span>
+    </div>
+    <div class="ms-dropdown" id="${wrapperId}-dd">
+      <input class="ms-search" placeholder="Tìm..." oninput="filterMS('${wrapperId}', this.value)">
+      <div class="ms-list" id="${wrapperId}-list"></div>
+      <div class="ms-footer">
+        <div class="ms-act ms-all" onclick="msSelectAll('${wrapperId}')">Tất cả</div>
+        <div class="ms-act ms-none" onclick="msSelectNone('${wrapperId}')">Bỏ chọn</div>
+      </div>
+    </div>`;
+
+  wrap._opts = options;
+  wrap._sel = selected;
+  wrap._allLabel = allLabel;
+  wrap._mlLabel = multiLabel || allLabel;
+  wrap._onChange = onChange;
+  renderMSList(wrapperId, '');
+  updateMSBtn(wrapperId);
+}
+
+function renderMSList(id, q) {
+  const wrap = document.getElementById(id);
+  const list = document.getElementById(id+'-list');
+  list.innerHTML = '';
+  wrap._opts.filter(o=>!q||o.label.toLowerCase().includes(q.toLowerCase())).forEach(o=>{
+    const div=document.createElement('div');
+    div.className='ms-item'+(wrap._sel.has(o.val)?' checked':'');
+    div.innerHTML=`<div class="ms-cb"></div><span>${o.label}</span>`;
+    div.onclick=()=>{ if(wrap._sel.has(o.val))wrap._sel.delete(o.val); else wrap._sel.add(o.val); renderMSList(id,q); updateMSBtn(id); wrap._onChange(); };
+    list.appendChild(div);
+  });
+}
+
+function filterMS(id,q){ renderMSList(id,q); }
+
+function toggleMS(id) {
+  document.querySelectorAll('.ms-dropdown.open').forEach(d=>{ if(d.id!==id+'-dd'){d.classList.remove('open');document.getElementById(d.id.replace('-dd','-btn')).classList.remove('open');} });
+  const dd=document.getElementById(id+'-dd'), btn=document.getElementById(id+'-btn');
+  dd.classList.toggle('open'); btn.classList.toggle('open');
+}
+
+function updateMSBtn(id) {
+  const wrap=document.getElementById(id);
+  const lbl=document.getElementById(id+'-lbl');
+  const n=wrap._sel.size, total=wrap._opts.length;
+  if(n===0||n===total) lbl.innerHTML=wrap._allLabel;
+  else if(n<=2) lbl.innerHTML=`<span class="ms-pill">${n}</span> ${[...wrap._sel].map(v=>wrap._opts.find(o=>o.val===v)?.label||v).join(', ').substring(0,25)}`;
+  else lbl.innerHTML=`<span class="ms-pill">${n}</span> đã chọn`;
+}
+
+function msSelectAll(id) { const w=document.getElementById(id); w._opts.forEach(o=>w._sel.add(o.val)); renderMSList(id,''); updateMSBtn(id); w._onChange(); }
+function msSelectNone(id) { const w=document.getElementById(id); w._sel.clear(); renderMSList(id,''); updateMSBtn(id); w._onChange(); }
+
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.ms-wrap')){ document.querySelectorAll('.ms-dropdown.open').forEach(d=>{d.classList.remove('open');document.getElementById(d.id.replace('-dd','-btn')).classList.remove('open');}); }
+});
+
+// ========== INIT ==========
+function initFilters() {
+  const regions=[...new Set(ALL_STORES.map(s=>s.region))].sort();
+  const cities=[...new Set(ALL_STORES.map(s=>s.city))].sort();
+  const groups=[...new Set(ALL_PRODS.map(p=>p.group).filter(Boolean))].sort();
+
+  buildMS('msRegion', regions.map(r=>({val:r,label:r})), 'Tất cả vùng', applyFilters);
+  buildMS('msCity', cities.map(c=>({val:c,label:c})), 'Tất cả thành phố', applyFilters);
+  buildMS('msDayType', [{val:'weekday',label:'Ngày thường'},{val:'weekend',label:'Cuối tuần'}], 'Tất cả ngày', applyFilters);
+  buildMS('msGroup', groups.map(g=>({val:g,label:g})), 'Tất cả nhóm', applyFilters);
+
+  const fDF=document.getElementById('fDateFrom'), fDT=document.getElementById('fDateTo');
+  DATES.forEach(d=>{
+    [fDF,fDT].forEach(el=>{const o=document.createElement('option');o.value=d;o.textContent=d;el.appendChild(o);});
+  });
+  fDT.value=DATES[DATES.length-1];
+
+  // Init state sets
+  S.regions=new Set(document.getElementById('msRegion')._opts.map(o=>o.val));
+  S.cities=new Set(document.getElementById('msCity')._opts.map(o=>o.val));
+  S.dayTypes=new Set(['weekday','weekend']);
+  S.groups=new Set(document.getElementById('msGroup')._opts.map(o=>o.val));
+}
+
+function applyFilters() {
+  const rw=document.getElementById('msRegion'), cw=document.getElementById('msCity');
+  const dw=document.getElementById('msDayType'), gw=document.getElementById('msGroup');
+  S.regions = rw._sel.size===rw._opts.length ? null : new Set(rw._sel);
+  S.cities  = cw._sel.size===cw._opts.length ? null : new Set(cw._sel);
+  S.dayTypes= dw._sel.size===dw._opts.length ? null : new Set(dw._sel);
+  S.groups  = gw._sel.size===gw._opts.length ? null : new Set(gw._sel);
+  S.dateFrom=document.getElementById('fDateFrom').value;
+  S.dateTo=document.getElementById('fDateTo').value;
+  refresh();
+}
+
+function resetFilters() {
+  ['msRegion','msCity','msDayType','msGroup'].forEach(id=>{
+    const w=document.getElementById(id); w._opts.forEach(o=>w._sel.add(o.val)); renderMSList(id,''); updateMSBtn(id);
+  });
+  document.getElementById('fDateFrom').value=DATES[0];
+  document.getElementById('fDateTo').value=DATES[DATES.length-1];
+  S={...S,regions:null,cities:null,dayTypes:null,groups:null,dateFrom:DATES[0],dateTo:DATES[DATES.length-1]};
+  refresh();
+}
+
+// ========== FILTER LOGIC ==========
+function getFilteredDates() {
+  return DATES.filter(d=>{
+    if(d<S.dateFrom||d>S.dateTo) return false;
+    const isWE=WE.has(d);
+    if(S.dayTypes){ if(isWE&&!S.dayTypes.has('weekend')) return false; if(!isWE&&!S.dayTypes.has('weekday')) return false; }
+    return true;
+  });
+}
+
+function getFilteredStores() {
+  return ALL_STORES.filter(s=>{
+    if(S.regions&&!S.regions.has(s.region)) return false;
+    if(S.cities&&!S.cities.has(s.city)) return false;
+    return true;
+  });
+}
+
+function getFilteredProds() {
+  return ALL_PRODS.filter(p=>{
+    if(S.groups&&!S.groups.has(p.group)) return false;
+    return true;
+  });
+}
+
+function storeRev(store, dates){ return dates.reduce((s,d)=>s+(store.daily[d]||0),0); }
+function prodRev(prod, dates){ return dates.reduce((s,d)=>s+(prod.daily[d]||0),0); }
+
+// ========== FORMAT ==========
+const fmt=n=>n>=1e9?(n/1e9).toFixed(2)+'B':n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(0)+'K':Math.round(n).toLocaleString('vi');
+const fmtFull=n=>Math.round(n).toLocaleString('vi')+' VNĐ';
+const fmtPct=n=>n.toFixed(1)+'%';
+
+// ========== CHARTS REGISTRY ==========
+const CHARTS={};
+function dc(id){if(CHARTS[id]){CHARTS[id].destroy();delete CHARTS[id];}}
+Chart.defaults.color='#94a3b8';Chart.defaults.borderColor='#2a2f4a';Chart.defaults.font.family="'Segoe UI',system-ui,sans-serif";
+
+// ========== SPARKLINE ==========
+function spark(vals,color='#4361ee'){
+  const w=72,h=22,p=2,n=vals.length;
+  const mx=Math.max(...vals)||1,mn=Math.min(...vals);
+  const pts=vals.map((v,i)=>{const x=p+i*(w-2*p)/(n-1||1);const y=h-p-(v-mn)/(mx-mn||1)*(h-2*p);return `${x.toFixed(1)},${y.toFixed(1)}`;}).join(' ');
+  const last=pts.split(' ').pop().split(',');
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/><circle cx="${last[0]}" cy="${last[1]}" r="2.5" fill="#4cc9f0"/></svg>`;
+}
+
+// ========== MAIN REFRESH ==========
+function refresh() {
+  const stores=getFilteredStores(), dates=getFilteredDates(), prods=getFilteredProds();
+  const storeRevs=stores.map(s=>({...s,fRev:storeRev(s,dates)})).sort((a,b)=>b.fRev-a.fRev);
+  const prodRevs=prods.map(p=>({...p,fRev:prodRev(p,dates)})).sort((a,b)=>b.fRev-a.fRev);
+  const totalRev=storeRevs.reduce((s,x)=>s+x.fRev,0);
+  const totalSold=storeRevs.reduce((s,x)=>s+x.sold,0);
+  const avgDay=dates.length?totalRev/dates.length:0;
+  const avgTA=totalSold?totalRev/totalSold:0;
+  const ns=stores.length, nd=dates.length;
+
+  // Header status
+  const hasF=S.regions||S.cities||(S.dayTypes&&S.dayTypes.size<2)||S.groups||S.dateFrom!==DATES[0]||S.dateTo!==DATES[DATES.length-1];
+  document.getElementById('hdrStatus').innerHTML=hasF?`<span style="color:var(--a2)">🔍 Đang lọc</span>`:'Toàn bộ dữ liệu';
+  document.getElementById('fStatus').innerHTML=`<strong>${ns}</strong> stores · <strong>${nd}</strong> ngày`;
+
+  if(S.tab==='overview') refreshOverview(storeRevs,prodRevs,dates,totalRev,totalSold,avgDay,avgTA);
+  else refreshProducts(prodRevs,dates,totalRev);
+  
+  // Always update both tables
+  _storeRevs=storeRevs; _totalRev=totalRev; _dates=dates; _prodRevs=prodRevs;
+  renderStoreTable(); renderProdTable();
+}
+
+let _storeRevs=[],_totalRev=0,_dates=[],_prodRevs=[];
+
+// ========== OVERVIEW ==========
+function refreshOverview(storeRevs,prodRevs,dates,totalRev,totalSold,avgDay,avgTA) {
+  document.getElementById('kRev').textContent=fmt(totalRev);
+  document.getElementById('kRevSub').textContent=fmtFull(totalRev);
+  document.getElementById('kSold').textContent=(totalSold/1e3).toFixed(1)+'K';
+  document.getElementById('kSoldSub').textContent=totalSold.toLocaleString('vi')+' lượt';
+  document.getElementById('kAvgD').textContent=fmt(avgDay);
+  document.getElementById('kAvgDSub').textContent=dates.length+' ngày trong kỳ';
+  document.getElementById('kTA').textContent=Math.round(avgTA).toLocaleString('vi');
+  document.getElementById('kTASub').textContent=storeRevs.length+' cửa hàng';
+
+  // Top 10
+  const t10=storeRevs.slice(0,10);
+  dc('top10');
+  CHARTS.top10=new Chart(document.getElementById('cTop10'),{
+    type:'bar',data:{labels:t10.map(s=>s.name),datasets:[{label:'DT Net',data:t10.map(s=>s.fRev),
+      backgroundColor:t10.map((_,i)=>`hsla(${215+i*9},72%,${57+i}%,.85)`),borderRadius:5,borderSkipped:false}]},
+    options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)+' VNĐ'}}},
+      scales:{x:{ticks:{callback:v=>fmt(v),font:{size:10}},grid:{color:'rgba(42,47,74,.7)'}},y:{ticks:{font:{size:10}},grid:{display:false}}},
+      onClick:(e,el)=>{if(el.length)drillStore(t10[el[0].index],dates);}}
+  });
+
+  // Region pie
+  const rm={};storeRevs.forEach(s=>{rm[s.region]=(rm[s.region]||0)+s.fRev;});
+  const rL=Object.keys(rm),rV=Object.values(rm),rC=['#4361ee','#4cc9f0','#f72585','#06d6a0','#ffd60a','#fb8500','#9b5de5'];
+  dc('region');
+  CHARTS.region=new Chart(document.getElementById('cRegion'),{
+    type:'doughnut',data:{labels:rL,datasets:[{data:rV,backgroundColor:rC,borderWidth:2,borderColor:'#1a1d2e'}]},
+    options:{responsive:true,cutout:'55%',plugins:{legend:{position:'bottom',labels:{padding:10,font:{size:10}}},
+      tooltip:{callbacks:{label:c=>` ${c.label}: ${fmt(c.raw)} (${fmtPct(c.raw/totalRev*100)})`}}},
+      onClick:(e,el)=>{if(el.length){const rw=document.getElementById('msRegion');rw._opts.forEach(o=>o.val===rL[el[0].index]?rw._sel.add(o.val):rw._sel.delete(o.val));updateMSBtn('msRegion');applyFilters();}}}
+  });
+
+  // Daily
+  const dAgg={};dates.forEach(d=>{dAgg[d]=0;});storeRevs.forEach(s=>{dates.forEach(d=>{dAgg[d]+=(s.daily[d]||0);});});
+  const dL=Object.keys(dAgg),dV=Object.values(dAgg);
+  const wdV=dV.filter((_,i)=>!WE.has(dL[i])),weV=dV.filter((_,i)=>WE.has(dL[i]));
+  const awd=wdV.length?wdV.reduce((a,b)=>a+b)/wdV.length:0,awe=weV.length?weV.reduce((a,b)=>a+b)/weV.length:0;
+  document.getElementById('legAvg').textContent=`Ngày thường avg: ${fmt(awd)} · Cuối tuần avg: ${fmt(awe)}`;
+  dc('daily');
+  CHARTS.daily=new Chart(document.getElementById('cDaily'),{
+    type:'bar',data:{labels:dL.map(d=>d.substring(0,5)),datasets:[
+      {type:'bar',label:'DT Net',data:dV,backgroundColor:dL.map(d=>WE.has(d)?'rgba(247,37,133,.8)':'rgba(67,97,238,.75)'),borderRadius:3,borderSkipped:false},
+      {type:'line',label:'TB ngày thường',data:dL.map(()=>awd),borderColor:'rgba(67,97,238,.5)',borderWidth:1.5,borderDash:[5,3],pointRadius:0,fill:false},
+      {type:'line',label:'TB cuối tuần',data:dL.map(()=>awe),borderColor:'rgba(247,37,133,.5)',borderWidth:1.5,borderDash:[5,3],pointRadius:0,fill:false}
+    ]},
+    options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.raw)} VNĐ`}}},
+      scales:{x:{ticks:{font:{size:9},maxRotation:45},grid:{display:false}},y:{ticks:{callback:v=>fmt(v),font:{size:10}},grid:{color:'rgba(42,47,74,.7)'}}}}
+  });
+
+  // City
+  const cm={};storeRevs.forEach(s=>{cm[s.city]=(cm[s.city]||0)+s.fRev;});
+  const cE=Object.entries(cm).sort((a,b)=>b[1]-a[1]),cC=['#4361ee','#4cc9f0','#f72585','#06d6a0','#ffd60a','#fb8500','#9b5de5','#00bbf9','#fee440','#f15bb5','#3a86ff'];
+  dc('city');
+  CHARTS.city=new Chart(document.getElementById('cCity'),{
+    type:'bar',data:{labels:cE.map(([c])=>c),datasets:[{label:'DT Net',data:cE.map(([,v])=>v),backgroundColor:cC.slice(0,cE.length),borderRadius:5,borderSkipped:false}]},
+    options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmt(c.raw)} · ${fmtPct(c.raw/totalRev*100)}`}}},
+      scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{callback:v=>fmt(v),font:{size:10}},grid:{color:'rgba(42,47,74,.7)'}}},
+      onClick:(e,el)=>{if(el.length){const cw=document.getElementById('msCity');cw._opts.forEach(o=>o.val===cE[el[0].index][0]?cw._sel.add(o.val):cw._sel.delete(o.val));updateMSBtn('msCity');applyFilters();}}}
+  });
+
+  // Weekday vs weekend
+  const wdT=wdV.reduce((a,b)=>a+b,0),weT=weV.reduce((a,b)=>a+b,0);
+  dc('wknd');
+  CHARTS.wknd=new Chart(document.getElementById('cWknd'),{
+    type:'bar',data:{labels:['Ngày thường','Cuối tuần'],
+      datasets:[{label:'Tổng',data:[wdT,weT],backgroundColor:['rgba(67,97,238,.8)','rgba(247,37,133,.8)'],borderRadius:8,borderSkipped:false},
+        {type:'line',label:'Avg/ngày',data:[awd,awe],borderColor:'rgba(255,214,10,.8)',borderWidth:2,pointRadius:6,pointBackgroundColor:'#ffd60a',fill:false,yAxisID:'y2'}]},
+    options:{responsive:true,plugins:{legend:{position:'bottom',labels:{padding:10,font:{size:10}}},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.raw)} VNĐ`}}},
+      scales:{x:{ticks:{font:{size:11}},grid:{display:false}},y:{ticks:{callback:v=>fmt(v),font:{size:10}},grid:{color:'rgba(42,47,74,.7)'}},y2:{position:'right',ticks:{callback:v=>fmt(v),font:{size:10}},grid:{display:false}}}}
+  });
+}
+
+// ========== PRODUCTS TAB ==========
+function refreshProducts(prodRevs,dates,totalRev) {
+  if(!prodRevs.length){return;}
+
+  // KPIs
+  const top1=prodRevs[0];
+  const grpMap={};prodRevs.forEach(p=>{grpMap[p.group]=(grpMap[p.group]||0)+p.fRev;});
+  const topGrp=Object.entries(grpMap).sort((a,b)=>b[1]-a[1])[0];
+  const topPrice=prodRevs.slice().sort((a,b)=>b.avgPrice-a.avgPrice)[0];
+  document.getElementById('pKSP').textContent=prodRevs.length;
+  document.getElementById('pKSPsub').textContent=`trên ${[...new Set(prodRevs.map(p=>p.group))].length} nhóm`;
+  document.getElementById('pKTop').textContent=top1?.name.substring(0,22)||'—';
+  document.getElementById('pKTopSub').textContent=top1?`${fmt(top1.fRev)} VNĐ · ${Math.round(top1.sold).toLocaleString('vi')} bán`:'';
+  document.getElementById('pKGrp').textContent=topGrp?topGrp[0].substring(0,20):'—';
+  document.getElementById('pKGrpSub').textContent=topGrp?`${fmt(topGrp[1])} · ${fmtPct(topGrp[1]/totalRev*100)}`:'';
+  document.getElementById('pKPrice').textContent=topPrice?Math.round(topPrice.avgPrice).toLocaleString('vi'):'—';
+  document.getElementById('pKPriceSub').textContent=topPrice?topPrice.name.substring(0,28):'';
+
+  // Top 10 by sold
+  const t10s=prodRevs.slice().sort((a,b)=>b.sold-a.sold).slice(0,10);
+  dc('pSold');
+  CHARTS.pSold=new Chart(document.getElementById('cProdSold'),{
+    type:'bar',data:{labels:t10s.map(p=>p.name.substring(0,28)),datasets:[{label:'SL Bán',data:t10s.map(p=>p.sold),
+      backgroundColor:t10s.map((_,i)=>`hsla(${160+i*12},65%,${55+i}%,.85)`),borderRadius:4,borderSkipped:false}]},
+    options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${Math.round(c.raw).toLocaleString('vi')} món`}}},
+      scales:{x:{ticks:{callback:v=>v>=1000?(v/1000).toFixed(0)+'K':v,font:{size:10}},grid:{color:'rgba(42,47,74,.7)'}},y:{ticks:{font:{size:10}},grid:{display:false}}},
+      onClick:(e,el)=>{if(el.length)drillProd(t10s[el[0].index],dates,totalRev);}}
+  });
+
+  // Top 10 by revenue
+  const t10r=prodRevs.slice(0,10);
+  dc('pRev');
+  CHARTS.pRev=new Chart(document.getElementById('cProdRev'),{
+    type:'bar',data:{labels:t10r.map(p=>p.name.substring(0,28)),datasets:[{label:'DT Net',data:t10r.map(p=>p.fRev),
+      backgroundColor:t10r.map((_,i)=>`hsla(${260+i*10},65%,${58+i}%,.85)`),borderRadius:4,borderSkipped:false}]},
+    options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmt(c.raw)} VNĐ`}}},
+      scales:{x:{ticks:{callback:v=>fmt(v),font:{size:10}},grid:{color:'rgba(42,47,74,.7)'}},y:{ticks:{font:{size:10}},grid:{display:false}}},
+      onClick:(e,el)=>{if(el.length)drillProd(t10r[el[0].index],dates,totalRev);}}
+  });
+
+  // Group bar
+  const grpE=Object.entries(grpMap).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  dc('grpRev');
+  CHARTS.grpRev=new Chart(document.getElementById('cGrpRev'),{
+    type:'bar',data:{labels:grpE.map(([g])=>g.length>16?g.substring(0,16)+'…':g),
+      datasets:[{label:'DT Net',data:grpE.map(([,v])=>v),
+        backgroundColor:['#4361ee','#4cc9f0','#f72585','#06d6a0','#ffd60a','#fb8500','#9b5de5','#00bbf9','#3a86ff','#fee440','#f15bb5','#06d6a0'].slice(0,grpE.length),
+        borderRadius:5,borderSkipped:false}]},
+    options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmt(c.raw)} · ${fmtPct(c.raw/totalRev*100)}`}}},
+      scales:{x:{ticks:{font:{size:9},maxRotation:30},grid:{display:false}},y:{ticks:{callback:v=>fmt(v),font:{size:10}},grid:{color:'rgba(42,47,74,.7)'}}},
+      onClick:(e,el)=>{if(el.length){const gw=document.getElementById('msGroup');gw._opts.forEach(o=>o.val===grpE[el[0].index][0]?gw._sel.add(o.val):gw._sel.delete(o.val));updateMSBtn('msGroup');applyFilters();}}}
+
+} // end initApp
+
+// ========== BOOT ==========
+loadData();
+  });
+
+  // Scatter: group sold vs rev
+  const grpSold={};prodRevs.forEach(p=>{grpSold[p.group]=(grpSold[p.group]||0)+p.sold;});
+  const grpData=Object.entries(grpMap).map(([g,r])=>({label:g,x:grpSold[g]||0,y:r,r:Math.sqrt(r/totalRev)*40+4}));
+  dc('grpBub');
+  CHARTS.grpBub=new Chart(document.getElementById('cGrpBubble'),{
+    type:'bubble',
+    data:{datasets:grpData.map((g,i)=>({label:g.label,data:[{x:g.x,y:g.y,r:g.r}],
+      backgroundColor:`hsla(${200+i*35},65%,60%,.7)`,borderColor:`hsla(${200+i*35},65%,60%,1)`}))},
+    options:{responsive:true,plugins:{legend:{display:false},
+      tooltip:{callbacks:{title:()=>'',label:c=>` ${c.dataset.label}: DT ${fmt(c.raw.y)} · SL ${Math.round(c.raw.x).toLocaleString('vi')}`}}},
+      scales:{x:{title:{display:true,text:'Số Lượng Bán',font:{size:10},color:'#94a3b8'},ticks:{callback:v=>v>=1000?(v/1000).toFixed(0)+'K':v,font:{size:9}},grid:{color:'rgba(42,47,74,.7)'}},
+        y:{title:{display:true,text:'Doanh Thu Net',font:{size:10},color:'#94a3b8'},ticks:{callback:v=>fmt(v),font:{size:9}},grid:{color:'rgba(42,47,74,.7)'}}}}
+  });
+
+  // Daily trend top 5
+  const top5=prodRevs.slice(0,5);
+  const tColors=['#4361ee','#f72585','#06d6a0','#ffd60a','#9b5de5'];
+  dc('pTrend');
+  CHARTS.pTrend=new Chart(document.getElementById('cProdTrend'),{
+    type:'line',
+    data:{labels:DATES.map(d=>d.substring(0,5)),
+      datasets:top5.map((p,i)=>({label:p.name.substring(0,22),data:DATES.map(d=>p.daily[d]||0),
+        borderColor:tColors[i],backgroundColor:tColors[i]+'22',borderWidth:1.8,pointRadius:0,tension:.3,fill:false}))},
+    options:{responsive:true,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'bottom',labels:{padding:12,font:{size:10},boxWidth:12}}},
+      tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.raw)} VNĐ`}},
+      scales:{x:{ticks:{font:{size:9},maxRotation:45},grid:{display:false}},y:{ticks:{callback:v=>fmt(v),font:{size:10}},grid:{color:'rgba(42,47,74,.7)'}}}}
+  });
+}
+
+// ========== STORE TABLE ==========
+let _srtS=3,_srtSAsc=false;
+function srtS(c){if(_srtS===c)_srtSAsc=!_srtSAsc;else{_srtS=c;_srtSAsc=false;}renderStoreTable();}
+
+function renderStoreTable(){
+  const q=document.getElementById('srchStore').value.toLowerCase();
+  let rows=[..._storeRevs].filter(s=>!q||s.name.toLowerCase().includes(q)||s.city.toLowerCase().includes(q));
+  rows.sort((a,b)=>{
+    if(_srtS===1){return _srtSAsc?a.name.localeCompare(b.name,'vi'):b.name.localeCompare(a.name,'vi');}
+    if(_srtS===2){return _srtSAsc?a.city.localeCompare(b.city,'vi'):b.city.localeCompare(a.city,'vi');}
+    const av=_srtS===3?a.fRev:_srtS===4?a.sold:_srtS===5?a.fRev/(_dates.length||1):a.fRev/_totalRev;
+    const bv=_srtS===3?b.fRev:_srtS===4?b.sold:_srtS===5?b.fRev/(_dates.length||1):b.fRev/_totalRev;
+    return _srtSAsc?av-bv:bv-av;
+  });
+  const mx=rows.length?rows[0].fRev:1;
+  const tb=document.getElementById('tbStore'); tb.innerHTML='';
+  if(!rows.length){tb.innerHTML='<tr><td colspan="8" class="empty">Không có dữ liệu</td></tr>';return;}
+  rows.forEach((s,i)=>{
+    const rk=i+1,rc=rk===1?'r1':rk===2?'r2':rk===3?'r3':'rn';
+    const cc=s.city==='Hà Nội'?'t-hn':s.city==='Hải Phòng'?'t-hp':s.city==='Thái Bình'?'t-tb':s.city==='Nam Định'?'t-nd':'t-o';
+    const avgD=_dates.length?s.fRev/_dates.length:0;
+    const bw=mx?s.fRev/mx*100:0;
+    const tr=document.createElement('tr');
+    if(S.hlStore===s.name)tr.classList.add('hl');
+    tr.onclick=()=>drillStore(s,_dates);tr.style.cursor='pointer';
+    tr.innerHTML=`<td><span class="rnk ${rc}">${rk}</span></td>
+      <td style="font-weight:500;max-width:170px">${s.name}</td>
+      <td><span class="ctag ${cc}">${s.city}</span></td>
+      <td class="num">${fmt(s.fRev)}<div class="bm" style="width:${bw.toFixed(0)}%;max-width:100px"></div></td>
+      <td class="num s">${s.sold.toLocaleString('vi')}</td>
+      <td class="num">${fmt(avgD)}</td>
+      <td class="num g">${fmtPct(_totalRev?s.fRev/_totalRev*100:0)}</td>
+      <td>${spark(DATES.map(d=>s.daily[d]||0))}</td>`;
+    tb.appendChild(tr);
+  });
+  document.querySelectorAll('#tbStore').forEach(()=>{});
+  document.querySelectorAll('[id="tbStore"] ~ * th, .tcard th').forEach((th,i)=>{th.classList.remove('asc','desc');if(i===_srtS)th.classList.add(_srtSAsc?'asc':'desc');});
+  document.getElementById('storeInfo').textContent=`${rows.length}/${_storeRevs.length}`;
+}
+
+// ========== PRODUCT TABLE ==========
+let _srtP=3,_srtPAsc=false;
+function srtP(c){if(_srtP===c)_srtPAsc=!_srtPAsc;else{_srtP=c;_srtPAsc=false;}renderProdTable();}
+
+function renderProdTable(){
+  const q=document.getElementById('srchProd').value.toLowerCase();
+  let rows=[..._prodRevs].filter(p=>!q||p.name.toLowerCase().includes(q)||p.group.toLowerCase().includes(q));
+  rows.sort((a,b)=>{
+    if(_srtP===1){return _srtPAsc?a.name.localeCompare(b.name,'vi'):b.name.localeCompare(a.name,'vi');}
+    if(_srtP===2){return _srtPAsc?a.group.localeCompare(b.group,'vi'):b.group.localeCompare(a.group,'vi');}
+    const av=_srtP===3?a.fRev:_srtP===4?a.sold:_srtP===5?a.avgPrice:a.stores;
+    const bv=_srtP===3?b.fRev:_srtP===4?b.sold:_srtP===5?b.avgPrice:b.stores;
+    return _srtPAsc?av-bv:bv-av;
+  });
+  const mx=rows.length?rows[0].fRev:1, totalR=_totalRev||1;
+  const tb=document.getElementById('tbProd'); tb.innerHTML='';
+  if(!rows.length){tb.innerHTML='<tr><td colspan="8" class="empty">Không có sản phẩm</td></tr>';return;}
+  rows.slice(0,100).forEach((p,i)=>{
+    const rk=i+1,rc=rk===1?'r1':rk===2?'r2':rk===3?'r3':'rn';
+    const bw=mx?p.fRev/mx*100:0;
+    const pct=p.fRev/totalR*100;
+    const tr=document.createElement('tr');
+    if(S.hlProd===p.name)tr.classList.add('hl');
+    tr.onclick=()=>drillProd(p,_dates,totalR);tr.style.cursor='pointer';
+    tr.innerHTML=`<td><span class="rnk ${rc}">${rk}</span></td>
+      <td style="max-width:200px;font-weight:500">${p.name}</td>
+      <td><span class="gtag">${p.group||'—'}</span></td>
+      <td class="num">${fmt(p.fRev)}<div class="bm" style="width:${bw.toFixed(0)}%;max-width:100px"></div></td>
+      <td class="num s">${Math.round(p.sold).toLocaleString('vi')}</td>
+      <td class="num">${Math.round(p.avgPrice).toLocaleString('vi')}</td>
+      <td style="text-align:center;color:var(--sub)">${p.stores}</td>
+      <td class="num g">${fmtPct(pct)}</td>`;
+    tb.appendChild(tr);
+  });
+  document.getElementById('prodInfo').textContent=`${rows.length}/${_prodRevs.length}`;
+}
+
+// ========== DRILL DOWN ==========
+function drillStore(store, dates) {
+  S.hlStore=store.name;
+  const rev=storeRev(store,dates||DATES);
+  const bars=DATES.map(d=>{const v=store.daily[d]||0,pct=(v/Math.max(...DATES.map(d=>store.daily[d]||0))||0)*100;
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;font-size:11px">
+      <span style="width:60px;color:var(--sub)">${d.substring(0,5)}</span>
+      <div style="flex:1;background:var(--border);border-radius:2px;height:7px;overflow:hidden"><div style="width:${pct.toFixed(0)}%;height:100%;background:${WE.has(d)?'rgba(247,37,133,.8)':'rgba(67,97,238,.75)'};border-radius:2px"></div></div>
+      <span class="num" style="width:65px;text-align:right">${fmt(v)}</span></div>`;}).join('');
+  document.getElementById('drillTitle').textContent='📍 '+store.name;
+  document.getElementById('drillContent').innerHTML=`
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-lbl">Doanh Thu Net</div><div class="stat-val" style="color:var(--a3)">${fmt(rev)}</div></div>
+      <div class="stat-box"><div class="stat-lbl">Thành Phố</div><div class="stat-val" style="color:var(--yellow);font-size:15px">${store.city}</div><div style="font-size:10px;color:var(--sub)">${store.region}</div></div>
+      <div class="stat-box"><div class="stat-lbl">TB / Ngày</div><div class="stat-val" style="color:var(--green)">${fmt(store.avgDailyRev||rev/store.activeDays)}</div></div>
+    </div>
+    <div style="font-size:11px;font-weight:600;margin-bottom:8px;color:var(--sub)">DAILY T3/2026</div>
+    <div style="max-height:300px;overflow-y:auto">${bars}</div>`;
+  document.getElementById('drillPanel').classList.add('open');
+}
+
+function drillProd(prod, dates, totalRev) {
+  S.hlProd=prod.name;
+  const rev=prodRev(prod,dates||DATES);
+  const bars=DATES.map(d=>{const v=prod.daily[d]||0,mx=Math.max(...DATES.map(d=>prod.daily[d]||0))||1,pct=v/mx*100;
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;font-size:11px">
+      <span style="width:60px;color:var(--sub)">${d.substring(0,5)}</span>
+      <div style="flex:1;background:var(--border);border-radius:2px;height:7px;overflow:hidden"><div style="width:${pct.toFixed(0)}%;height:100%;background:${WE.has(d)?'rgba(247,37,133,.7)':'rgba(67,97,238,.7)'};border-radius:2px"></div></div>
+      <span class="num" style="width:65px;text-align:right">${fmt(v)}</span></div>`;}).join('');
+  document.getElementById('drillTitle').textContent='🧋 '+prod.name;
+  document.getElementById('drillContent').innerHTML=`
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-lbl">Doanh Thu Net</div><div class="stat-val" style="color:var(--a3)">${fmt(rev)}</div></div>
+      <div class="stat-box"><div class="stat-lbl">SL Bán</div><div class="stat-val" style="color:var(--a2)">${Math.round(prod.sold).toLocaleString('vi')}</div></div>
+      <div class="stat-box"><div class="stat-lbl">Giá TB / Món</div><div class="stat-val" style="color:var(--yellow)">${Math.round(prod.avgPrice).toLocaleString('vi')}</div></div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-lbl">Nhóm Món</div><div class="stat-val" style="color:var(--purple);font-size:13px">${prod.group||'—'}</div></div>
+      <div class="stat-box"><div class="stat-lbl">Có mặt tại</div><div class="stat-val" style="color:var(--green)">${prod.stores} stores</div></div>
+      <div class="stat-box"><div class="stat-lbl">% Đóng Góp</div><div class="stat-val" style="color:var(--orange)">${fmtPct(totalRev?rev/totalRev*100:0)}</div></div>
+    </div>
+    <div style="font-size:11px;font-weight:600;margin-bottom:8px;color:var(--sub)">TREND T3/2026</div>
+    <div style="max-height:300px;overflow-y:auto">${bars}</div>`;
+  document.getElementById('drillPanel').classList.add('open');
+}
+
+function closeDrill(e){
+  if(!e||e.target===document.getElementById('drillPanel')||e.target.classList.contains('drill-x')){
+    document.getElementById('drillPanel').classList.remove('open');
+    S.hlStore=null; S.hlProd=null;
+  }
+}
+
+// ========== TAB ==========
+function switchTab(tab) {
+  S.tab=tab;
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['overview','products'][i]===tab));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  refresh();
+}
+
+// ========== BOOT ==========
+initFilters();
+refresh();
+</script>
+
+<!-- LOADING SCREEN -->
+<div id="loadingScreen" style="position:fixed;inset:0;background:#0f1117;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:16px;">
+  <div style="font-size:48px">🧋</div>
+  <div style="color:#e2e8f0;font-family:'Segoe UI',sans-serif;font-size:16px;font-weight:600">Đang tải dữ liệu...</div>
+  <div style="width:200px;height:4px;background:#1a1d2e;border-radius:2px;overflow:hidden">
+    <div style="width:40%;height:100%;background:linear-gradient(90deg,#4361ee,#4cc9f0);border-radius:2px;animation:slide 1.2s ease-in-out infinite"></div>
+  </div>
+  <style>@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}</style>
+  <div style="color:#94a3b8;font-size:12px">Kết nối Supabase · Tháng 3/2026</div>
+</div>
+
+</body>
+</html>

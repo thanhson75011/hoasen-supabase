@@ -396,16 +396,16 @@ async function loadData() {
 // ========== STATE ==========
 let S;
 function initApp() {
+  const DATES = D.dates;
+  const WE = new Set(D.weekend);
+  const ALL_STORES = D.stores;
+  const ALL_PRODS = D.products;
   S = {
     regions: new Set(), cities: new Set(), dayTypes: new Set(['weekday','weekend']),
     groups: new Set(), dateFrom: DATES[0], dateTo: DATES[DATES.length-1],
     srtS: 3, srtSAsc: false, srtP: 3, srtPAsc: false,
     hlStore: null, hlProd: null, tab: 'overview'
   };
-  const DATES = D.dates;
-  const WE = new Set(D.weekend);
-  const ALL_STORES = D.stores;
-  const ALL_PRODS = D.products;
 
 // ========== MULTI-SELECT COMPONENT ==========
 function buildMS(wrapperId, options, allLabel, onChange, multiLabel) {

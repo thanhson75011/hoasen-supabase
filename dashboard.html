@@ -391,6 +391,7 @@ async function loadData() {
     S.dateTo   = DATES[DATES.length - 1];
     // Hide loader and start app
     document.getElementById('loadingScreen').style.display = 'none';
+    initFilters();
     applyFilters();
   } catch(e) {
     document.getElementById('loadingScreen').innerHTML =
@@ -892,9 +893,8 @@ function switchTab(tab) {
   refresh();
 }
 
-// ========== BOOT ==========
-initFilters();
-refresh();
+// ========== BOOT — deferred to loadData() ==========
+// initFilters() and refresh() are called inside loadData() after data is ready
 </script>
 
 <!-- LOADING SCREEN -->

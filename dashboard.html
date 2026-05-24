@@ -721,7 +721,7 @@ function refreshProducts(prodRevs,dates,totalRev) {
         borderRadius:5,borderSkipped:false}]},
     options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmt(c.raw)} · ${fmtPct(c.raw/totalRev*100)}`}}},
       scales:{x:{ticks:{font:{size:9},maxRotation:30},grid:{display:false}},y:{ticks:{callback:v=>fmt(v),font:{size:10}},grid:{color:'rgba(42,47,74,.7)'}}},
-      onClick:(e,el)=>{if(el.length){const gw=document.getElementById('msGroup');gw._opts.forEach(o=>o.val===grpE[el[0].index][0]?gw._sel.add(o.val):gw._sel.delete(o.val));updateMSBtn('msGroup');// auto-boot handled by loadData()
+      onClick:(e,el)=>{if(el.length){const gw=document.getElementById('msGroup');gw._opts.forEach(o=>o.val===grpE[el[0].index][0]?gw._sel.add(o.val):gw._sel.delete(o.val));updateMSBtn('msGroup');applyFilters();}}}
   });
 
   // Scatter: group sold vs rev

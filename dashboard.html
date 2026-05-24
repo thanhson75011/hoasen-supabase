@@ -343,27 +343,25 @@ svg.spark{vertical-align:middle;}
 
 <script>
 // ========== RAW DATA ==========
-// ========== SUPABASE CONFIG ==========
+// ========== SUPABASE LOADER ==========
 const SUPABASE_URL = 'https://sshrhwaqfogaljlfgufd.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzaHJod2FxZm9nYWxqbGZndWZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0Mzc2MzksImV4cCI6MjA5NTAxMzYzOX0.tC9q-XmTsJKjKHG0YoIyTAvt36UmYltypOcnnd2bJV0';
 
-async function fetchAll(table, select='*') {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=${select}&limit=2000`, {
-    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-  });
-  if (!res.ok) throw new Error(`Failed to fetch ${table}: ${res.status}`);
+async function fetchAll(table) {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/${table}?select=*&limit=2000`,
+    { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+  );
+  if (!res.ok) throw new Error(`${table}: ${res.status}`);
   return res.json();
 }
 
 let D = null;
 
 async function loadData() {
-  document.getElementById('loadingScreen').style.display = 'flex';
   try {
     const [stores, products, metaRows] = await Promise.all([
-      fetchAll('stores'),
-      fetchAll('products'),
-      fetchAll('metadata'),
+      fetchAll('stores'), fetchAll('products'), fetchAll('metadata')
     ]);
     const meta = Object.fromEntries(metaRows.map(m => [m.key, JSON.parse(m.value)]));
     D = {
@@ -383,29 +381,36 @@ async function loadData() {
       dates: meta.dates,
       weekend: meta.weekend,
     };
+    // Set globals
+    DATES     = D.dates;
+    WE        = new Set(D.weekend);
+    ALL_STORES = D.stores;
+    ALL_PRODS  = D.products;
+    // Init state defaults that depend on DATES
+    S.dateFrom = DATES[0];
+    S.dateTo   = DATES[DATES.length - 1];
+    // Hide loader and start app
     document.getElementById('loadingScreen').style.display = 'none';
-    initApp();
+    applyFilters();
   } catch(e) {
     document.getElementById('loadingScreen').innerHTML =
-      `<div style="color:#f72585;text-align:center"><div style="font-size:48px">⚠️</div><div style="margin-top:12px">Lỗi tải dữ liệu</div><div style="font-size:12px;margin-top:8px;color:#94a3b8">${e.message}</div><button onclick="loadData()" style="margin-top:16px;padding:8px 20px;background:#4361ee;color:#fff;border:none;border-radius:8px;cursor:pointer">Thử lại</button></div>`;
+      `<div style="color:#f72585;text-align:center;font-family:sans-serif">
+        <div style="font-size:48px">⚠️</div>
+        <div style="margin-top:12px;font-size:16px">Lỗi tải dữ liệu</div>
+        <div style="font-size:12px;margin-top:8px;color:#94a3b8">${e.message}</div>
+        <button onclick="loadData()" style="margin-top:16px;padding:8px 20px;background:#4361ee;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px">Thử lại</button>
+      </div>`;
   }
 }
-
-// Data loaded from Supabase via loadData()
+let DATES, WE, ALL_STORES, ALL_PRODS;
 
 // ========== STATE ==========
-let S;
-function initApp() {
-  const DATES = D.dates;
-  const WE = new Set(D.weekend);
-  const ALL_STORES = D.stores;
-  const ALL_PRODS = D.products;
-  S = {
-    regions: new Set(), cities: new Set(), dayTypes: new Set(['weekday','weekend']),
-    groups: new Set(), dateFrom: DATES[0], dateTo: DATES[DATES.length-1],
-    srtS: 3, srtSAsc: false, srtP: 3, srtPAsc: false,
-    hlStore: null, hlProd: null, tab: 'overview'
-  };
+let S = {
+  regions: new Set(), cities: new Set(), dayTypes: new Set(['weekday','weekend']),
+  groups: new Set(), dateFrom: null, dateTo: null,
+  srtS: 3, srtSAsc: false, srtP: 3, srtPAsc: false,
+  hlStore: null, hlProd: null, tab: 'overview'
+};
 
 // ========== MULTI-SELECT COMPONENT ==========
 function buildMS(wrapperId, options, allLabel, onChange, multiLabel) {
@@ -715,12 +720,7 @@ function refreshProducts(prodRevs,dates,totalRev) {
         borderRadius:5,borderSkipped:false}]},
     options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmt(c.raw)} · ${fmtPct(c.raw/totalRev*100)}`}}},
       scales:{x:{ticks:{font:{size:9},maxRotation:30},grid:{display:false}},y:{ticks:{callback:v=>fmt(v),font:{size:10}},grid:{color:'rgba(42,47,74,.7)'}}},
-      onClick:(e,el)=>{if(el.length){const gw=document.getElementById('msGroup');gw._opts.forEach(o=>o.val===grpE[el[0].index][0]?gw._sel.add(o.val):gw._sel.delete(o.val));updateMSBtn('msGroup');applyFilters();}}}
-
-} // end initApp
-
-// ========== BOOT ==========
-loadData();
+      onClick:(e,el)=>{if(el.length){const gw=document.getElementById('msGroup');gw._opts.forEach(o=>o.val===grpE[el[0].index][0]?gw._sel.add(o.val):gw._sel.delete(o.val));updateMSBtn('msGroup');// auto-boot handled by loadData()
   });
 
   // Scatter: group sold vs rev
@@ -899,14 +899,15 @@ refresh();
 
 <!-- LOADING SCREEN -->
 <div id="loadingScreen" style="position:fixed;inset:0;background:#0f1117;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:16px;">
-  <div style="font-size:48px">🧋</div>
+  <div style="font-size:56px">🧋</div>
   <div style="color:#e2e8f0;font-family:'Segoe UI',sans-serif;font-size:16px;font-weight:600">Đang tải dữ liệu...</div>
-  <div style="width:200px;height:4px;background:#1a1d2e;border-radius:2px;overflow:hidden">
-    <div style="width:40%;height:100%;background:linear-gradient(90deg,#4361ee,#4cc9f0);border-radius:2px;animation:slide 1.2s ease-in-out infinite"></div>
+  <div style="width:220px;height:4px;background:#1a1d2e;border-radius:2px;overflow:hidden">
+    <div style="width:40%;height:100%;background:linear-gradient(90deg,#4361ee,#4cc9f0);border-radius:2px;animation:ldslide 1.2s ease-in-out infinite"></div>
   </div>
-  <style>@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}</style>
+  <style>@keyframes ldslide{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}</style>
   <div style="color:#94a3b8;font-size:12px">Kết nối Supabase · Tháng 3/2026</div>
 </div>
+<script>loadData();</script>
 
 </body>
 </html>
